@@ -197,6 +197,29 @@ export interface Database {
           created_at?: string;
         };
       };
+      cron_logs: {
+        Row: {
+          id: string;
+          executed_at: string;
+          status: 'success' | 'error';
+          message: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          executed_at?: string;
+          status: 'success' | 'error';
+          message?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          executed_at?: string;
+          status?: 'success' | 'error';
+          message?: string | null;
+          created_at?: string;
+        };
+      };
     };
     Views: {
       stock_inventory: {
@@ -225,6 +248,7 @@ export type Sale = Database['public']['Tables']['sales']['Row'];
 export type SaleItem = Database['public']['Tables']['sale_items']['Row'];
 export type ExpenseType = Database['public']['Tables']['expense_types']['Row'];
 export type Expense = Database['public']['Tables']['expenses']['Row'];
+export type CronLog = Database['public']['Tables']['cron_logs']['Row'];
 export type StockInventory = Database['public']['Views']['stock_inventory']['Row'];
 
 // Extended types for queries with joins
