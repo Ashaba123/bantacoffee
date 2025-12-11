@@ -15,7 +15,7 @@ import {
   updateExpenseType,
 } from "@/lib/supabase/queries";
 import { formatCurrencyUGX } from "@/lib/utils";
-import { Plus, Edit2, Check, X, Package, DollarSign } from "lucide-react";
+import { Plus, Edit2, Check, X, Package, DollarSign, Clock, PlayCircle } from "lucide-react";
 import type { PieceCategory, ExpenseType } from "@/lib/supabase/types";
 
 export default function SettingsPage() {
@@ -34,6 +34,16 @@ export default function SettingsPage() {
   // Edit state
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editCategoryData, setEditCategoryData] = useState<Partial<PieceCategory>>({});
+  
+  // Cron job test state
+  const [testingCron, setTestingCron] = useState(false);
+  const [cronTestResult, setCronTestResult] = useState<{
+    success: boolean;
+    message: string;
+    timestamp?: string;
+    log?: any;
+    error?: string;
+  } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -121,6 +131,46 @@ export default function SettingsPage() {
     } catch (error) {
       console.error("Error toggling expense type:", error);
       alert("Error updating expense type");
+    }
+  }
+
+  async function testCronJob() {
+    setTestingCron(true);
+    setCronTestResult(null);
+    
+    try {
+      const response = await fetch('/api/cron/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setCronTestResult({
+          success: false,
+          message: 'Cron job test failed',
+          error: data.error || data.details || 'Unknown error',
+        });
+      } else {
+        setCronTestResult({
+          success: true,
+          message: data.message || 'Cron job executed successfully',
+          timestamp: data.timestamp,
+          log: data.log,
+        });
+      }
+    } catch (error) {
+      console.error("Error testing cron job:", error);
+      setCronTestResult({
+        success: false,
+        message: 'Failed to test cron job',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } finally {
+      setTestingCron(false);
     }
   }
 
@@ -371,6 +421,82 @@ export default function SettingsPage() {
               </div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Cron Job Testing */}
+      <Card className="coffee-texture">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Cron Job Testing
+              </CardTitle>
+              <CardDescription>
+                Manually trigger and test the scheduled cron job
+              </CardDescription>
+            </div>
+            <Button 
+              onClick={testCronJob} 
+              disabled={testingCron}
+              size="sm"
+            >
+              <PlayCircle className="h-4 w-4 mr-2" />
+              {testingCron ? 'Testing...' : 'Test Cron Job'}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {cronTestResult && (
+            <div className={`p-4 rounded-lg border ${
+              cronTestResult.success 
+                ? 'bg-green-50 border-green-200' 
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <div className="flex items-start gap-3">
+                {cronTestResult.success ? (
+                  <Check className="h-5 w-5 text-green-600 mt-0.5" />
+                ) : (
+                  <X className="h-5 w-5 text-red-600 mt-0.5" />
+                )}
+                <div className="flex-1">
+                  <h4 className={`font-semibold mb-1 ${
+                    cronTestResult.success ? 'text-green-800' : 'text-red-800'
+                  }`}>
+                    {cronTestResult.success ? 'Success' : 'Error'}
+                  </h4>
+                  <p className={`text-sm mb-2 ${
+                    cronTestResult.success ? 'text-green-700' : 'text-red-700'
+                  }`}>
+                    {cronTestResult.message}
+                  </p>
+                  {cronTestResult.timestamp && (
+                    <p className="text-xs text-gray-600">
+                      Executed at: {new Date(cronTestResult.timestamp).toLocaleString()}
+                    </p>
+                  )}
+                  {cronTestResult.error && (
+                    <p className="text-xs text-red-600 mt-2">
+                      Error: {cronTestResult.error}
+                    </p>
+                  )}
+                  {cronTestResult.log && (
+                    <div className="mt-2 p-2 bg-white rounded text-xs font-mono">
+                      <div>Log ID: {cronTestResult.log.id}</div>
+                      <div>Status: {cronTestResult.log.status}</div>
+                      <div>Message: {cronTestResult.log.message}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          {!cronTestResult && !testingCron && (
+            <p className="text-sm text-coffee-600">
+              Click the button above to manually trigger the cron job and verify it's working correctly.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
